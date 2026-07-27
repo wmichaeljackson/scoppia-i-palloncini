@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🎈 Scoppia i Palloncini</title>
+  <style>
+    * { box-sizing: border-box; }
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:'Comic Sans MS', cursive, sans-serif;
+      background: radial-gradient(circle at top, #2c3e50, #111827 72%);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+    .app{
+      width:min(980px, calc(100vw - 24px));
+      background:rgba(15, 23, 42, 0.84);
+      border:2px solid rgba(255,255,255,.12);
+      border-radius:28px;
+      padding:24px;
+      box-shadow:0 18px 50px rgba(0,0,0,.35);
+      backdrop-filter: blur(10px);
+      position:relative;
+    }
+    h1{
+      margin:0 0 8px;
+      text-align:center;
+      font-size:clamp(2rem, 4vw, 3.2rem);
+      color:#f1c40f;
+      text-shadow:0 2px 0 rgba(0,0,0,.35);
+    }
+    .subtitle{
+      text-align:center;
+      margin:0 0 18px;
+      opacity:.9;
+      line-height:1.5;
+    }
+    .topbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      justify-content:center;
+      margin-bottom:16px;
+    }
+    .btn{
+      border:0;
+      border-radius:14px;
+      padding:12px 18px;
+      font:inherit;
+      font-weight:700;
+      cursor:pointer;
+      color:white;
+      background:#34495e;
+      transition:transform .15s ease, background .15s ease, box-shadow .15s ease;
+      box-shadow:0 8px 18px rgba(0,0,0,.18);
+    }
+    .btn:hover{ transform:translateY(-2px); background:#2ecc71; }
+    .btn:active{ transform:translateY(1px) scale(.98); }
+    .btn.secondary{ background:#8e44ad; }
+    .btn.secondary:hover{ background:#9b59b6; }
+
+    .scoreboard{
+      display:flex;
+      gap:12px;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      margin-bottom:14px;
+      font-size:1rem;
+    }
+    .pill{
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:999px;
+      padding:10px 14px;
+      min-width:130px;
+      text-align:center;
+    }
+
+    .screen{ display:none; }
+    .screen.show{ display:block; }
+
+    .stage{
+      position:relative;
+      width:100%;
+      height:min(62vh, 520px);
+      border-radius:22px;
+      border:2px dashed rgba(255,255,255,0.14);
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      overflow:hidden;
+    }
+
+    .balloon{
+      position:absolute;
+      width:70px;
+      height:88px;
+      border:none;
+      border-radius:50% 50% 46% 46%;
+      cursor:pointer;
+      box-shadow:0 14px 30px rgba(0,0,0,.22);
+      transition:transform .12s ease, opacity .12s ease, left .12s linear, top .12s linear;
+      user-select:none;
+    }
+    .balloon::after{
+      content:'';
+      position:absolute;
+      left:50%;
+      bottom:-18px;
+      width:2px;
+      height:26px;
+      background:rgba(255,255,255,.6);
+      transform:translateX(-50%);
+    }
+    .balloon:hover{ transform:scale(1.05); }
+    .balloon.pop{
+      transform:scale(0.2);
+      opacity:0;
+    }
+
+    .message{
+      text-align:center;
+      margin-top:14px;
+      min-height:1.5em;
+      font-weight:700;
+      line-height:1.4;
+    }
+    .footer{
+      margin-top:14px;
+      text-align:center;
+      opacity:.85;
+      font-size:.95rem;
+    }
+
+    .game-end{
+      text-align:center;
+      padding:22px 10px 6px;
+    }
+    .result{
+      font-size:clamp(1.4rem, 3vw, 2.3rem);
+      margin:10px 0 6px;
+      color:#f1c40f;
+    }
+
+    @media (max-width:640px){
+      .app{ padding:16px; border-radius:20px; }
+      .stage{ height:58vh; }
+      .pill{ min-width: calc(50% - 6px); }
+      .balloon{ width:60px; height:76px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section id="homeScreen" class="screen show">
+      <h1>🎈 Scoppia i Palloncini</h1>
+      <p class="subtitle">Scoppia il maggior numero possibile di palloncini in 30 secondi.<br>Più vai avanti, più diventano veloci e piccoli.</p>
+
+      <div class="topbar">
+        <button class="btn" id="startBtn">Gioca</button>
+        <button class="btn secondary" id="resetBtn">Reset</button>
+        <button class="btn" id="commentsBtn">Commenti</button>
+        <button class="btn" id="funBtn">fun.games</button>
+      </div>
+
+      <div class="game-end">
+        <div class="result">Pronto a farli scoppiare?</div>
+        <p class="footer">Semplice, colorato e molto rumoroso... almeno nella tua testa.</p>
+      </div>
+    </section>
+
+    <section id="gameScreen" class="screen">
+      <h1>🎈 Scoppia i Palloncini</h1>
+      <div class="scoreboard">
+        <div class="pill">Punti: <span id="score">0</span></div>
+        <div class="pill">Tempo: <span id="time">30</span>s</div>
+        <div class="pill">Livello: <span id="level">1</span></div>
+      </div>
+
+      <div class="topbar">
+        <button class="btn secondary" id="backBtn">⬅ Torna alla home</button>
+      </div>
+
+      <section class="stage" id="stage" aria-label="Area di gioco"></section>
+      <div class="message" id="message">Clicca i palloncini per farli scoppiare.</div>
+      <div class="footer">Più palloncini scoppiano, più il gioco diventa veloce.</div>
+    </section>
+
+    <section id="endScreen" class="screen">
+      <h1>🎈 Scoppia i Palloncini</h1>
+      <div class="game-end">
+        <div class="result" id="finalScore">Hai totalizzato 0 punti!</div>
+        <p class="subtitle" id="finalMessage">Hai fatto un ottimo lavoro!</p>
+        <div class="topbar">
+          <button class="btn" id="playAgainBtn">Gioca ancora</button>
+          <button class="btn secondary" id="backHomeBtn">Torna alla home</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const homeScreen = document.getElementById('homeScreen');
+    const gameScreen = document.getElementById('gameScreen');
+    const endScreen = document.getElementById('endScreen');
+
+    const startBtn = document.getElementById('startBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const commentsBtn = document.getElementById('commentsBtn');
+    const funBtn = document.getElementById('funBtn');
+    const backBtn = document.getElementById('backBtn');
+    const playAgainBtn = document.getElementById('playAgainBtn');
+    const backHomeBtn = document.getElementById('backHomeBtn');
+
+    const stage = document.getElementById('stage');
+    const scoreEl = document.getElementById('score');
+    const timeEl = document.getElementById('time');
+    const levelEl = document.getElementById('level');
+    const messageEl = document.getElementById('message');
+    const finalScore = document.getElementById('finalScore');
+    const finalMessage = document.getElementById('finalMessage');
+
+    let score = 0;
+    let timeLeft = 30;
+    let level = 1;
+    let running = false;
+    let spawnTimer = null;
+    let gameTimer = null;
+    let balloonSpeed = 1600;
+    let balloonSize = 70;
+
+    const colors = [
+      ['#ff7675', '#d63031'],
+      ['#74b9ff', '#0984e3'],
+      ['#55efc4', '#00b894'],
+      ['#fdcb6e', '#e17055'],
+      ['#a29bfe', '#6c5ce7'],
+      ['#fab1a0', '#e84393']
+    ];
+
+    function showScreen(screen) {
+      homeScreen.classList.remove('show');
+      gameScreen.classList.remove('show');
+      endScreen.classList.remove('show');
+      screen.classList.add('show');
+    }
+
+    function updateUI() {
+      scoreEl.textContent = score;
+      timeEl.textContent = timeLeft;
+      levelEl.textContent = level;
+    }
+
+    function randomPosition(el) {
+      const maxX = Math.max(0, stage.clientWidth - el.offsetWidth - 8);
+      const maxY = Math.max(0, stage.clientHeight - el.offsetHeight - 8);
+      const x = Math.floor(Math.random() * Math.max(8, maxX));
+      const y = Math.floor(Math.random() * Math.max(8, maxY));
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+    }
+
+    function popBalloon(el) {
+      if (!running || el.classList.contains('pop')) return;
+      el.classList.add('pop');
+      score += 1;
+
+      if (score % 10 === 0) {
+        level += 1;
+        balloonSpeed = Math.max(550, balloonSpeed - 140);
+        balloonSize = Math.max(42, balloonSize - 3);
+        messageEl.textContent = 'Livello ' + level + '! Ora è più veloce.';
+      } else {
+        messageEl.textContent = score % 5 === 0 ? 'Bravo! Stai scoppiando tutto.' : 'Continua così!';
+      }
+
+      updateUI();
+
+      setTimeout(() => {
+        if (running) spawnBalloon();
+      }, 120);
+    }
+
+    function spawnBalloon() {
+      if (!running) return;
+
+      stage.innerHTML = '';
+      const balloon = document.createElement('button');
+      balloon.className = 'balloon';
+      balloon.type = 'button';
+      balloon.setAttribute('aria-label', 'Palloncino da scoppiare');
+
+      const c = colors[Math.floor(Math.random() * colors.length)];
+      balloon.style.background = `radial-gradient(circle at 35% 30%, ${c[0]}, ${c[1]} 72%)`;
+      balloon.style.width = balloonSize + 'px';
+      balloon.style.height = Math.round(balloonSize * 1.25) + 'px';
+
+      balloon.addEventListener('click', () => popBalloon(balloon));
+      stage.appendChild(balloon);
+      randomPosition(balloon);
+
+      clearTimeout(spawnTimer);
+      spawnTimer = setTimeout(() => {
+        if (!running) return;
+        spawnBalloon();
+      }, balloonSpeed);
+    }
+
+    function startGame() {
+      score = 0;
+      timeLeft = 30;
+      level = 1;
+      running = true;
+      balloonSpeed = 1600;
+      balloonSize = 70;
+      updateUI();
+      messageEl.textContent = 'Vai! Scoppia il primo palloncino.';
+      showScreen(gameScreen);
+      spawnBalloon();
+
+      clearInterval(gameTimer);
+      gameTimer = setInterval(() => {
+        timeLeft -= 1;
+        updateUI();
+        if (timeLeft <= 0) endGame();
+      }, 1000);
+    }
+
+    function resetGame() {
+      clearInterval(gameTimer);
+      clearTimeout(spawnTimer);
+      score = 0;
+      timeLeft = 30;
+      level = 1;
+      running = false;
+      stage.innerHTML = '';
+      updateUI();
+      messageEl.textContent = 'Clicca i palloncini per farli scoppiare.';
+      showScreen(homeScreen);
+    }
+
+    function endGame() {
+      running = false;
+      clearInterval(gameTimer);
+      clearTimeout(spawnTimer);
+      stage.innerHTML = '';
+      finalScore.textContent = 'Hai totalizzato ' + score + ' punti!';
+      if (score < 8) {
+        finalMessage.textContent = 'Hai iniziato bene, ma i palloncini volevano di più.';
+      } else if (score < 20) {
+        finalMessage.textContent = 'Molto bravo! Hai fatto scoppiare tanti palloncini.';
+      } else {
+        finalMessage.textContent = 'Incredibile! I palloncini hanno perso ogni speranza.';
+      }
+      showScreen(endScreen);
+    }
+
+    startBtn.addEventListener('click', startGame);
+    playAgainBtn.addEventListener('click', startGame);
+    resetBtn.addEventListener('click', resetGame);
+    backBtn.addEventListener('click', resetGame);
+    backHomeBtn.addEventListener('click', resetGame);
+    commentsBtn.addEventListener('click', () => window.open('https://github.com/wmichaeljackson/scoppia-i-palloncini/discussions/1', '_blank'));
+    funBtn.addEventListener('click', () => location.href = 'https://wmichaeljackson.github.io/fun.games/');
+
+    window.addEventListener('resize', () => {
+      if (running && stage.firstElementChild) randomPosition(stage.firstElementChild);
+    });
+
+    updateUI();
+    showScreen(homeScreen);
+  </script>
+</body>
+</html>
